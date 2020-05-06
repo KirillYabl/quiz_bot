@@ -24,13 +24,15 @@ class VkSessionUsersCondition:
         self.db = {}
 
     def add_or_update_user(self, user_id):
-        """Add new user or update existing user if he got answer
+        """Add new user or update existing user if he got answer.
+
         :param user_id: id of user in VK
         """
         self.db[user_id] = self.new_user_template.copy()
 
     def is_user_in_db(self, user_id):
         """Check user in db.
+
         :param user_id: id of user in VK
         :return: bool, True if user found
         """
@@ -40,6 +42,7 @@ class VkSessionUsersCondition:
 
     def is_user_got_question(self, user_id):
         """Check status of user question.
+
         :param user_id: id of user in VK
         :return: bool, True if user got question
         """
@@ -51,8 +54,9 @@ class VkSessionUsersCondition:
     def get_user_correct_answer(self, user_id):
         """Get user correct answer.
         If this method gave answer, user will update.
-        If this method don't know user, user will init. And method will return 'None' for the next handling.
-        If user didn't get question, method will return 'None' for the next handling
+        If this method didn't know user, user will initialize. And method will return 'None' for the next handling.
+        If user didn't get question, method will return 'None' for the next handling.
+
         :param user_id: id of user in VK
         :return: answer or None (don't know user or user didn't get question)
         """
@@ -68,6 +72,7 @@ class VkSessionUsersCondition:
 
     def add_answer_to_user(self, user_id, q, a):
         """Update user with new answer.
+
         :param user_id: id of user in VK
         :param q: str, user question
         :param a: str, correct answer
@@ -80,9 +85,9 @@ class VkSessionUsersCondition:
         self.db[user_id]['a'] = a
 
 
-def bot_logic(event, vk_api):
-    """Echo answerer.
-    :type vk_api: object
+def run_bot_logic(event, vk_api):
+    """Logic of bot.
+
     :param event: event which discribe message
     :param vk_api: authorized session in vk
     """
@@ -179,8 +184,7 @@ def bot_logic(event, vk_api):
 
 
 def init_keyboard():
-    """
-    Initialize keyboard.
+    """Initialize keyboard.
 
     :return: keyboard object
     """
@@ -204,7 +208,7 @@ if __name__ == "__main__":
     REDIS_DB_ADDRESS = os.getenv('REDIS_DB_ADDRESS')
     REDIS_DB_PORT = os.getenv('REDIS_DB_PORT')
     REDIS_DB_PASSWORD = os.getenv('REDIS_DB_PASSWORD')
-    logger.debug('.env was reading')
+    logger.debug('.env was read')
 
     DB = redis.Redis(host=REDIS_DB_ADDRESS, port=REDIS_DB_PORT, password=REDIS_DB_PASSWORD)
     VK_DB = VkSessionUsersCondition()
@@ -216,6 +220,6 @@ if __name__ == "__main__":
             longpoll = VkLongPoll(vk_session)
             for event in longpoll.listen():
                 if event.type == VkEventType.MESSAGE_NEW and event.to_me:
-                    bot_logic(event, vk_api)
+                    run_bot_logic(event, vk_api)
         except Exception:
             logger.exception('Critical error in ')

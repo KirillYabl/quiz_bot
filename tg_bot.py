@@ -17,10 +17,12 @@ class Buttons(IntEnum):
     ANSWER = 2
 
 
-def start(bot, update):
+def greet_user(bot, update):
     """Just hello message for /start command.
+
     :param bot: tg bot object
     :param update: event with update tg object
+    :return: number of next action for conversation handler
     """
     custom_keyboard = [
         ['Новый вопрос', 'Сдаться'],
@@ -33,10 +35,13 @@ def start(bot, update):
     return Buttons.MENU
 
 
-def menu_logic(bot, update, user_data):
+def manage_menu_logic(bot, update, user_data):
     """Manage menu logic.
+
     :param bot: tg bot object
     :param update: event with update tg object
+    :param user_data: users data which tg must remember. Dict-like interface
+    :return: number of next action for conversation handler
     """
     if update.message.text == 'Новый вопрос':
         return Buttons.QUESTION
@@ -45,10 +50,13 @@ def menu_logic(bot, update, user_data):
         return Buttons.MENU
 
 
-def new_question(bot, update, user_data):
+def give_question(bot, update, user_data):
     """Send any question.
+
     :param bot: tg bot object
     :param update: event with update tg object
+    :param user_data: users data which tg must remember. Dict-like interface
+    :return: number of next action for conversation handler
     """
     q = DB.randomkey().decode('utf-8')
     bot.send_message(chat_id=update.message.chat_id, text=q)
@@ -59,7 +67,14 @@ def new_question(bot, update, user_data):
     return Buttons.ANSWER
 
 
-def answer(bot, update, user_data):
+def check_answer(bot, update, user_data):
+    """Check user answer.
+
+    :param bot: tg bot object
+    :param update: event with update tg object
+    :param user_data: users data which tg must remember. Dict-like interface
+    :return: number of next action for conversation handler
+    """
     answer = user_data['answer']
 
     user_answer = update.message.text
@@ -80,7 +95,13 @@ def answer(bot, update, user_data):
     return Buttons.QUESTION
 
 
-def stop(bot, update):
+def stop_quiz(bot, update):
+    """Action which executes if user stop quiz.
+
+    :param bot: tg bot object
+    :param update: event with update tg object
+    :return: number of next action for conversation handler
+    """
     bot.send_message(chat_id=update.message.chat_id, text='Викторина остановлена.')
 
     return Buttons.MENU
@@ -96,19 +117,19 @@ if __name__ == '__main__':
     REDIS_DB_ADDRESS = os.getenv('REDIS_DB_ADDRESS')
     REDIS_DB_PORT = os.getenv('REDIS_DB_PORT')
     REDIS_DB_PASSWORD = os.getenv('REDIS_DB_PASSWORD')
-    logger.debug('.env was reading')
+    logger.debug('.env was read')
 
     DB = redis.Redis(host=REDIS_DB_ADDRESS, port=REDIS_DB_PORT, password=REDIS_DB_PASSWORD)
 
     # handler of bot's states
     conv_handler = ext.ConversationHandler(
-        entry_points=[ext.CommandHandler('start', start)],
+        entry_points=[ext.CommandHandler('start', greet_user)],
         states={
-            Buttons.MENU: [ext.MessageHandler(ext.Filters.text, menu_logic, pass_user_data=True)],
-            Buttons.QUESTION: [ext.MessageHandler(ext.Filters.text, new_question, pass_user_data=True)],
-            Buttons.ANSWER: [ext.MessageHandler(ext.Filters.text, answer, pass_user_data=True)],
+            Buttons.MENU: [ext.MessageHandler(ext.Filters.text, manage_menu_logic, pass_user_data=True)],
+            Buttons.QUESTION: [ext.MessageHandler(ext.Filters.text, give_question, pass_user_data=True)],
+            Buttons.ANSWER: [ext.MessageHandler(ext.Filters.text, check_answer, pass_user_data=True)],
         },
-        fallbacks=[ext.CommandHandler('stop', stop)]
+        fallbacks=[ext.CommandHandler('stop', stop_quiz)]
     )
 
     request_kwargs = None
