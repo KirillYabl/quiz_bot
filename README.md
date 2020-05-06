@@ -10,13 +10,19 @@ Both, VK in Telegram bots are integrated with Redis DB.
 
 You need to create `.env` file and write in file parameters:
 
-1. `TG_BOT_TOKEN` - secret token for your telegram bot. Just use [this](https://core.telegram.org/bots#creating-a-new-bot) instruction (use VPN to open this link in Russia).
-    1. After you got `TG_BOT_TOKEN` you need to write to you bot in telegram any message (`/start` for example).
-2. `VK_APP_TOKEN` - secret token of you VK app. You can create this in group administration panel in `Work with API`.
-3. `PROXY` - proxy IP with port and https if you need. Work with empty proxy if you in Europe.
-3. `REDIS_DB_ADDRESS` - register your account in [redis](https://redislabs.com/) and get address of your base (for example `redis-13965.f18.us-east-4-9.wc1.cloud.redislabs.com`).
-3. `REDIS_DB_PORT` - usually port writes in db address in the end `redis-13965.f18.us-east-4-9.wc1.cloud.redislabs.com:16635`
-3. `REDIS_DB_PASSWORD` - redis also will generate your DB password when your will init DB.
+`TG_BOT_TOKEN` - secret token for your telegram bot. Just use [this](https://core.telegram.org/bots#creating-a-new-bot) instruction (use VPN to open this link in Russia).
+
+After you got `TG_BOT_TOKEN` you need to write to you bot in telegram any message (`/start` for example).
+    
+`VK_APP_TOKEN` - secret token of you VK app. You can create this in group administration panel in `Work with API`.
+
+`PROXY` - proxy IP with port and https if you need. Work with empty proxy if you in Europe.
+
+`REDIS_DB_ADDRESS` - register your account in [redis](https://redislabs.com/) and get address of your base (for example `redis-13965.f18.us-east-4-9.wc1.cloud.redislabs.com`).
+
+`REDIS_DB_PORT` - usually port writes in db address in the end `redis-13965.f18.us-east-4-9.wc1.cloud.redislabs.com:16635`
+
+`REDIS_DB_PASSWORD` - redis also will generate your DB password when your will init DB.
 
 Python3 should be already installed. 
 Then use `pip` (or `pip3`, if there is a conflict with Python2) to install dependencies:
@@ -43,6 +49,7 @@ Create your own `data\question.json` file with training questions and answers fo
 Example of file:
 
 ```
+json
 {
 "data": {
     1: {'q': 'question', 'a': 'answer'},
@@ -56,11 +63,19 @@ Example of file:
 
 In file `redis_base_init.py` given a simple example of DB filling
 
-`python <PATH TO PROGRAM>\redis_base_init.py` filling your DB (file `question.json` must be in `data` subdirectory)
+```
+// filling your DB (file "question.json" must be in "data" subdirectory).
+python <PATH TO PROGRAM>\redis_base_init.py 
+```
 
-`python <PATH TO PROGRAM>\tg_bot.py` if you want to start telegram bot.
-
-`python <PATH TO PROGRAM>\vk_bot.py` if you want to start vk bot.
+```
+// if you want to start telegram bot.
+python <PATH TO PROGRAM>\tg_bot.py 
+```
+```
+// if you want to start vk bot.
+python <PATH TO PROGRAM>\vk_bot.py
+```
 
 ##### Deploy on heroku
 
@@ -68,15 +83,11 @@ Run bot in `Resources` tab in heroku app. `Procfile` for run in repo already.
 
 ### References
 
-[telegram bots documentation](https://core.telegram.org/bots#creating-a-new-bot)
-
-[heroku](https://heroku.com)
-
-[VK API documentation](https://vk.com/dev/first_guide)
-
-[dialogflow documentation](https://cloud.google.com/dialogflow/docs/)
-
-[redis](https://redislabs.com/)
+- [telegram bots documentation](https://core.telegram.org/bots#creating-a-new-bot)
+- [heroku](https://heroku.com)
+- [VK API documentation](https://vk.com/dev/first_guide)
+- [dialogflow documentation](https://cloud.google.com/dialogflow/docs/)
+- [redis](https://redislabs.com/)
 
 ### Project Goals
 
