@@ -149,8 +149,8 @@ def run_bot_logic(event, vk_api):
                     keyboard=init_keyboard().get_keyboard()
                 )
                 logger.debug('"answer to question with new question request" message sent')
-                q = DB.randomkey().decode('utf-8')
-                answer = DB.get(q).decode('utf-8')
+                q = DB.srandmember('QuestionAnswerSet', 1)[0].decode('utf-8')
+                answer = DB.hget('QuestionAnswerHash', q).decode('utf-8')
                 VK_DB.add_answer_to_user(event.user_id, q, answer)
                 msg = f'Ваш новый вопрос:\n{q}'
                 vk_api.messages.send(
@@ -162,8 +162,8 @@ def run_bot_logic(event, vk_api):
                 logger.debug('"new question with new question request" message sent')
                 return
 
-            q = DB.randomkey().decode('utf-8')
-            answer = DB.get(q).decode('utf-8')
+            q = DB.srandmember('QuestionAnswerSet', 1)[0].decode('utf-8')
+            answer = DB.hget('QuestionAnswerHash', q).decode('utf-8')
             VK_DB.add_answer_to_user(event.user_id, q, answer)
             msg += q
             vk_api.messages.send(

@@ -63,11 +63,11 @@ def give_question(bot, update, user_data):
     :param user_data: users data which tg must remember. Dict-like interface
     :return: number of next action for conversation handler
     """
-    q = DB.randomkey().decode('utf-8')
+    q = DB.srandmember('QuestionAnswerSet', 1)[0].decode('utf-8')
     bot.send_message(chat_id=update.message.chat_id, text=q)
     logger.debug('Question sent')
 
-    answer = DB.get(q).decode('utf-8')
+    answer = DB.hget('QuestionAnswerHash', q).decode('utf-8')
     user_data['answer'] = answer
     logger.debug('Answer wrote')
 
