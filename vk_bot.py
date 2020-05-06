@@ -10,6 +10,8 @@ import redis
 
 from common_functions import is_correct_answer
 
+logger = logging.getLogger(__name__)
+
 
 class VkSessionUsersCondition:
     """Custom user db. It only works in one session, after that clear because is MVP."""
@@ -22,6 +24,8 @@ class VkSessionUsersCondition:
             'a': ''  # text of answer
         }
         self.db = {}
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self.logger.debug('Initialize class params')
 
     def add_or_update_user(self, user_id):
         """Add new user or update existing user if he got answer.
@@ -29,6 +33,7 @@ class VkSessionUsersCondition:
         :param user_id: id of user in VK
         """
         self.db[user_id] = self.new_user_template.copy()
+        self.logger.debug(f'User created user_id={user_id}')
 
     def is_user_in_db(self, user_id):
         """Check user in db.
@@ -83,6 +88,7 @@ class VkSessionUsersCondition:
         self.db[user_id]['got_q'] = True
         self.db[user_id]['q'] = q
         self.db[user_id]['a'] = a
+        self.logger.debug(f'User got answer. user_id={user_id}')
 
 
 def run_bot_logic(event, vk_api):
@@ -95,18 +101,20 @@ def run_bot_logic(event, vk_api):
     got_question = True
     msg = ''
     if event.type == VkEventType.MESSAGE_NEW and event.to_me:
+        logger.debug(f'Starting work. user_id={event.user_id}')
         # in start we will get future question and answer if didn't get early
         if not VK_DB.is_user_in_db(event.user_id):
             VK_DB.add_or_update_user(event.user_id)
             first_time = True
+            msg += 'Рады приветствовать вас в нашей викторине!\n'
+            logger.debug('User play first time.')
 
         if not VK_DB.is_user_got_question(event.user_id):
             got_question = False
-
-        if first_time:
-            msg += 'Рады приветствовать вас в нашей викторине!\n'
+            logger.debug('User didn\'t get question.')
 
         if event.text == "Сдаться":
+            logger.debug('User gave up')
             answer = VK_DB.get_user_correct_answer(event.user_id)
 
             if answer is None:
@@ -118,6 +126,7 @@ def run_bot_logic(event, vk_api):
                     random_id=random.randint(1, 1000),
                     keyboard=init_keyboard().get_keyboard()
                 )
+                logger.debug('"give up without question" message sent')
                 return
 
             msg = f'Жаль, правильный ответ:\n{answer}'
@@ -127,7 +136,9 @@ def run_bot_logic(event, vk_api):
                 random_id=random.randint(1, 1000),
                 keyboard=init_keyboard().get_keyboard()
             )
+            logger.debug('"give up" message sent')
         elif event.text == "Новый вопрос":
+            logger.debug('User is getting new question')
             if got_question and not first_time:
                 answer = VK_DB.get_user_correct_answer(event.user_id)
                 msg += f'А как же предыдущий вопрос?\nПравильный ответ:\n{answer}'
@@ -137,6 +148,7 @@ def run_bot_logic(event, vk_api):
                     random_id=random.randint(1, 1000),
                     keyboard=init_keyboard().get_keyboard()
                 )
+                logger.debug('"answer to question with new question request" message sent')
                 q = DB.randomkey().decode('utf-8')
                 answer = DB.get(q).decode('utf-8')
                 VK_DB.add_answer_to_user(event.user_id, q, answer)
@@ -147,6 +159,7 @@ def run_bot_logic(event, vk_api):
                     random_id=random.randint(1, 1000),
                     keyboard=init_keyboard().get_keyboard()
                 )
+                logger.debug('"new question with new question request" message sent')
                 return
 
             q = DB.randomkey().decode('utf-8')
@@ -159,13 +172,16 @@ def run_bot_logic(event, vk_api):
                 random_id=random.randint(1, 1000),
                 keyboard=init_keyboard().get_keyboard()
             )
+            logger.debug('"new question" message sent')
         else:
             if got_question:
                 correct_answer = VK_DB.get_user_correct_answer(event.user_id)
                 if is_correct_answer(event.text, correct_answer, limit=0.5):
                     msg = f'Правильно! Полный ответ:\n{correct_answer}\nХотите новый вопрос? Выберите в меню.'
+                    logger.debug('"correct answer" message sent')
                 else:
                     msg = f'К сожалению нет! Полный ответ:\n{correct_answer}\nХотите новый вопрос? Выберите в меню.'
+                    logger.debug('"incorrect answer" message sent')
                 vk_api.messages.send(
                     user_id=event.user_id,
                     message=msg,
@@ -181,6 +197,7 @@ def run_bot_logic(event, vk_api):
                 random_id=random.randint(1, 1000),
                 keyboard=init_keyboard().get_keyboard()
             )
+            logger.debug('"press new question" message sent')
 
 
 def init_keyboard():
@@ -196,12 +213,12 @@ def init_keyboard():
     keyboard.add_line()  # Переход на вторую строку
     keyboard.add_button('Мой счёт', color=VkKeyboardColor.PRIMARY)
 
+    logger.debug('Keyboard initialized')
     return keyboard
 
 
 if __name__ == "__main__":
     logging.basicConfig(format='%(asctime)s  %(name)s  %(levelname)s  %(message)s', level=logging.DEBUG)
-    logger = logging.getLogger('vk_bot')
 
     dotenv.load_dotenv()
     VK_APP_TOKEN = os.getenv('VK_APP_TOKEN')
@@ -211,11 +228,13 @@ if __name__ == "__main__":
     logger.debug('.env was read')
 
     DB = redis.Redis(host=REDIS_DB_ADDRESS, port=REDIS_DB_PORT, password=REDIS_DB_PASSWORD)
+    logger.debug('Got DB connection')
     VK_DB = VkSessionUsersCondition()
 
     while True:
         try:
             vk_session = vk.VkApi(token=VK_APP_TOKEN)
+            logger.debug('Got VK API connection')
             vk_api = vk_session.get_api()
             longpoll = VkLongPoll(vk_session)
             for event in longpoll.listen():
