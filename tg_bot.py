@@ -5,10 +5,16 @@ import redis
 
 import logging
 import os
+from enum import IntEnum, unique
 
 from common_functions import is_correct_answer
 
-MENU, QUESTION, ANSWER = range(3)
+
+@unique
+class Buttons(IntEnum):
+    MENU = 0
+    QUESTION = 1
+    ANSWER = 2
 
 
 def start(bot, update):
@@ -24,7 +30,7 @@ def start(bot, update):
     msg = 'Добро пожаловать в историческую викторину. Выберите действие!'
     bot.send_message(chat_id=update.message.chat_id, text=msg, reply_markup=reply_markup)
 
-    return MENU
+    return Buttons.MENU
 
 
 def menu_logic(bot, update, user_data):
@@ -33,10 +39,10 @@ def menu_logic(bot, update, user_data):
     :param update: event with update tg object
     """
     if update.message.text == 'Новый вопрос':
-        return QUESTION
+        return Buttons.QUESTION
 
     if update.message.text == 'Сдаться':
-        return MENU
+        return Buttons.MENU
 
 
 def new_question(bot, update, user_data):
@@ -50,7 +56,7 @@ def new_question(bot, update, user_data):
     answer = DB.get(q).decode('utf-8')
     user_data['answer'] = answer
 
-    return ANSWER
+    return Buttons.ANSWER
 
 
 def answer(bot, update, user_data):
@@ -62,22 +68,22 @@ def answer(bot, update, user_data):
     if is_correct_answer(user_answer, answer, limit=0.5):
         msg = 'Правильно! Полный ответ:\n{}\nХотите новый вопрос? Выберите в меню.'.format(user_data['answer'])
         bot.send_message(chat_id=update.message.chat_id, text=msg)
-        return QUESTION
+        return Buttons.QUESTION
 
     if update.message.text == 'Сдаться':
         msg = 'Жаль... Правильный ответ:\n{}\nХотите новый вопрос? Выберите в меню.'.format(user_data['answer'])
         bot.send_message(chat_id=update.message.chat_id, text=msg)
-        return QUESTION
+        return Buttons.QUESTION
 
     msg = 'К сожалению нет! Правильный ответ:\n{}\nХотите новый вопрос? Выберите в меню.'.format(user_data['answer'])
     bot.send_message(chat_id=update.message.chat_id, text=msg)
-    return QUESTION
+    return Buttons.QUESTION
 
 
 def stop(bot, update):
     bot.send_message(chat_id=update.message.chat_id, text='Викторина остановлена.')
 
-    return MENU
+    return Buttons.MENU
 
 
 if __name__ == '__main__':
@@ -98,9 +104,9 @@ if __name__ == '__main__':
     conv_handler = ext.ConversationHandler(
         entry_points=[ext.CommandHandler('start', start)],
         states={
-            MENU: [ext.MessageHandler(ext.Filters.text, menu_logic, pass_user_data=True)],
-            QUESTION: [ext.MessageHandler(ext.Filters.text, new_question, pass_user_data=True)],
-            ANSWER: [ext.MessageHandler(ext.Filters.text, answer, pass_user_data=True)],
+            Buttons.MENU: [ext.MessageHandler(ext.Filters.text, menu_logic, pass_user_data=True)],
+            Buttons.QUESTION: [ext.MessageHandler(ext.Filters.text, new_question, pass_user_data=True)],
+            Buttons.ANSWER: [ext.MessageHandler(ext.Filters.text, answer, pass_user_data=True)],
         },
         fallbacks=[ext.CommandHandler('stop', stop)]
     )
