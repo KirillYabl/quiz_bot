@@ -24,6 +24,10 @@ After you got `TG_BOT_TOKEN` you need to write to you bot in telegram any messag
 
 `REDIS_DB_PASSWORD` - redis also will generate your DB password when your will init DB.
 
+`DB_PATH` - path to file with questions and answer (default: `data\question.json`).
+
+`DB_RECORD_COUNT` - count of question which will write to db (default: 100).
+
 Python3 should be already installed. 
 Then use `pip` (or `pip3`, if there is a conflict with Python2) to install dependencies:
 ```
@@ -44,17 +48,16 @@ For deploy this bot on [heroku](https://heroku.com) you need to do next:
 
 Open command line (in windows `Win+R` and write `cmd` and `Ok`). Go to directory with program or just write in cmd:
 
-Create your own `data\question.json` file with training questions and answers for dialogflow.
+Create your own `DB_PATH` file with training questions and answers for dialogflow.
 
 Example of file:
 
-```
-json
+```json
 {
 "data": {
-    1: {'q': 'question', 'a': 'answer'},
+    "1": {"q": "question", "a": "answer"},
     ...,
-    100: {'q': 'question','a': 'answer'}
+    "100": {"q": "question", "a": "answer"}
     },
 "min_id": 1,
 "max_id": 100
