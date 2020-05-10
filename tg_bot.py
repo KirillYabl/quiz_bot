@@ -56,20 +56,22 @@ def manage_menu_logic(bot, update, user_data):
         return Buttons.MENU
 
 
-def give_question(bot, update, user_data, redis_db):
+def give_question(bot, update, user_data, redis_db, redis_set_name, redis_hash_name):
     """Send any question.
 
     :param bot: tg bot object
     :param update: event with update tg object
     :param user_data: users data which tg must remember. Dict-like interface
     :param redis_db: redis database object
+    :param redis_set_name: name of set in Redis
+    :param redis_hash_name: name of hash in redis
     :return: number of next action for conversation handler
     """
-    q = redis_db.srandmember('QuestionAnswerSet', 1)[0].decode('utf-8')
-    bot.send_message(chat_id=update.message.chat_id, text=q)
+    question = redis_db.srandmember(redis_set_name, 1)[0].decode('utf-8')
+    bot.send_message(chat_id=update.message.chat_id, text=question)
     logger.debug('Question were sent')
 
-    answer = redis_db.hget('QuestionAnswerHash', q).decode('utf-8')
+    answer = redis_db.hget(redis_hash_name, question).decode('utf-8')
     user_data['answer'] = answer
     logger.debug('Answer were wrote')
 
@@ -129,7 +131,14 @@ if __name__ == '__main__':
     redis_db_address = os.getenv('REDIS_DB_ADDRESS')
     redis_db_port = os.getenv('REDIS_DB_PORT')
     redis_db_password = os.getenv('REDIS_DB_PASSWORD')
+    redis_set_of_questions_name = os.getenv('REDIS_SET_OF_QUESTIONS_NAME')
+    redis_hash_of_questions_and_answers_name = os.getenv('REDIS_HASH_OF_QUESTIONS_AND_ANSWERS_NAME')
     logger.debug('.env were read')
+
+    if redis_set_of_questions_name is None:
+        redis_set_of_questions_name = 'QuestionAnswerSet'
+    if redis_hash_of_questions_and_answers_name is None:
+        redis_hash_of_questions_and_answers_name = 'QuestionAnswerHash'
 
     redis_db = redis.Redis(host=redis_db_address, port=redis_db_port, password=redis_db_password)
     logger.debug('Got DB connection')

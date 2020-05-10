@@ -28,6 +28,12 @@ After you got `TG_BOT_TOKEN` you need to write to you bot in telegram any messag
 
 `DB_RECORD_COUNT` - count of question which will write to db (default: 100).
 
+`REDIS_SET_OF_QUESTIONS_NAME` - name of redis set of questions. (default: QuestionAnswerSet)
+
+`REDIS_HASH_OF_QUESTIONS_AND_ANSWERS_NAME` - name of redis hash of questions and answers. (default: QuestionAnswerHash)
+
+`REDIS_HASH_USERS_INFO_NAME` - name of redis hash of users info for VK bot. (default: UsersHash)
+
 Python3 should be already installed. 
 Then use `pip` (or `pip3`, if there is a conflict with Python2) to install dependencies:
 ```

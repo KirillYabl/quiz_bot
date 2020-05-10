@@ -1,6 +1,7 @@
 import random
 import logging
 import os
+import json
 
 import dotenv
 import vk_api as vk
@@ -14,81 +15,108 @@ logger = logging.getLogger(__name__)
 
 
 class VkSessionUsersCondition:
-    """Custom user db. It only works in one session, after that clear because is MVP."""
+    """User DB in Redis.
 
-    def __init__(self):
+    Usage:
+        For queries economy purpose
+        1. ALWAYS get user_info
+        2. Do other operations
+
+    :param redis_db: object of connection redis db
+    :param name_of_hash: str, name of your hash in redis
+    """
+
+    def __init__(self, redis_db, name_of_hash):
         # Template of info about new user
-        self.new_user_template = {
+        self.new_user_template = json.dumps({
             'got_q': False,  # Is user got question
             'q': '',  # text of question
             'a': ''  # text of answer
-        }
-        self.db = {}
+        })
+        self.redis_db = redis_db
+        self.name_of_hash = name_of_hash
         self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.debug('Class params were initialized')
 
-    def add_or_update_user(self, user_id):
+    def add_or_update_user(self, user_id, user_info=None):
         """Add new user or update existing user if he got answer.
 
         :param user_id: id of user in VK
+        :param user_info: dict or None, if don't need template
         """
-        self.db[user_id] = self.new_user_template.copy()
-        self.logger.debug(f'User created, user_id={user_id}')
+        if user_info is None:
+            self.redis_db.hset(self.name_of_hash, user_id, self.new_user_template)
+            self.logger.debug(f'User created, user_id={user_id}')
+            return
 
-    def is_user_in_db(self, user_id):
-        """Check user in db.
+        dumped_user_info = json.dumps(user_info)
+        self.redis_db.hset(self.name_of_hash, user_id, dumped_user_info)
+        self.logger.debug(f'User updated, user_id={user_id}')
+        return
+
+    def get_user_info(self, user_id):
+        """Get user info by user_id, convert to JSON if user in db.
 
         :param user_id: id of user in VK
         :return: bool, True if user found
         """
-        if user_id in self.db:
-            return True
-        return False
+        user_info = self.redis_db.hget(self.name_of_hash, user_id)
 
-    def is_user_got_question(self, user_id):
+        if user_info is not None:
+            user_info = json.loads(user_info).decode('utf-8')
+
+        return user_info
+
+    def is_user_got_question(self, user_id, user_info):
         """Check status of user question.
 
         :param user_id: id of user in VK
         :return: bool, True if user got question
         """
-        if not self.is_user_in_db(user_id):
+        if user_info is None:
             self.add_or_update_user(user_id)
             return False
-        return self.db[user_id]['got_q']
+        return user_info['got_q']
 
-    def get_user_correct_answer(self, user_id):
+    def get_user_correct_answer(self, user_id, user_info):
         """Get user correct answer.
+
         If this method gave answer, user will update.
         If this method didn't know user, user will initialize. And method will return 'None' for the next handling.
         If user didn't get question, method will return 'None' for the next handling.
 
         :param user_id: id of user in VK
+        :param user_info: dict or None, if don't need template
         :return: answer or None (don't know user or user didn't get question)
         """
-        if not self.is_user_in_db(user_id):
+
+        if user_info is None:
             self.add_or_update_user(user_id)
             return None
 
-        if self.db[user_id]['got_q']:
-            answer = self.db[user_id]['a']
+        if user_info['got_q']:
+            answer = user_info['a']
             self.add_or_update_user(user_id)
             return answer
         return None
 
-    def add_answer_to_user(self, user_id, q, a):
+    def add_answer_to_user(self, user_id, user_info, question, answer):
         """Update user with new answer.
 
         :param user_id: id of user in VK
-        :param q: str, user question
-        :param a: str, correct answer
+        :param user_info: dict or None, if don't need template
+        :param question: str, user question
+        :param answer: str, correct answer
         """
-        if not self.is_user_in_db(user_id):
+
+        if user_info is None:
             self.add_or_update_user(user_id)
 
-        self.db[user_id]['got_q'] = True
-        self.db[user_id]['q'] = q
-        self.db[user_id]['a'] = a
-        self.logger.debug(f'User got answer, user_id={user_id}')
+        user_info['got_q'] = True
+        user_info['q'] = question
+        user_info['a'] = answer
+        self.add_or_update_user(user_id, user_info)
+        self.logger.debug(f'User got answer and updated, user_id={user_id}')
 
 
 def init_keyboard():
@@ -236,7 +264,7 @@ def send_new_question_msg(event, vk_api, **kwargs):
     return 'press new question'
 
 
-def run_bot_logic(event, vk_api, redis_db, users_db):
+def run_bot_logic(event, vk_api, redis_db, users_db, redis_set_name, redis_hash_name):
     """Logic of bot.
 
     :param event: event which discribe message
@@ -253,19 +281,20 @@ def run_bot_logic(event, vk_api, redis_db, users_db):
 
     logger.debug(f'Starting work. user_id={event.user_id}')
     # in start we will get future question and answer if didn't get early
-    if not users_db.is_user_in_db(event.user_id):
+    user_info = users_db.get_user_info(event.user_id)
+    if user_info is None:
         users_db.add_or_update_user(event.user_id)
         first_time = True
         msg += 'Рады приветствовать вас в нашей викторине!\n'
         logger.debug('User play first time.')
 
-    if not users_db.is_user_got_question(event.user_id):
+    if not users_db.is_user_got_question(event.user_id, user_info):
         got_question = False
         logger.debug('User didn\'t get question.')
 
     if event.text == "Сдаться":
         logger.debug('User gave up')
-        answer = users_db.get_user_correct_answer(event.user_id)
+        answer = users_db.get_user_correct_answer(event.user_id, user_info)
         type_of_answer = give_up(event, vk_api, answer=answer, msg=msg)
         logger.debug(f'"{type_of_answer}" message were sent')
         return
@@ -274,25 +303,25 @@ def run_bot_logic(event, vk_api, redis_db, users_db):
 
         # user isn't playing first time. But he pressed "new question" instead answer to question
         if got_question and not first_time:
-            answer = users_db.get_user_correct_answer(event.user_id)
-            new_q = redis_db.srandmember('QuestionAnswerSet', 1)[0].decode('utf-8')
-            new_answer = redis_db.hget('QuestionAnswerHash', new_q).decode('utf-8')
-            users_db.add_answer_to_user(event.user_id, new_q, new_answer)
+            answer = users_db.get_user_correct_answer(event.user_id, user_info)
+            new_q = redis_db.srandmember(redis_set_name, 1)[0].decode('utf-8')
+            new_answer = redis_db.hget(redis_hash_name, new_q).decode('utf-8')
+            users_db.add_answer_to_user(event.user_id, user_info, new_q, new_answer)
             type_of_answer = new_question_old_user(event, vk_api, answer=answer, new_q=new_q, msg=msg)
             logger.debug(f'"{type_of_answer}" message were sent')
             return
 
         # user is playing first time
-        new_q = redis_db.srandmember('QuestionAnswerSet', 1)[0].decode('utf-8')
-        new_answer = redis_db.hget('QuestionAnswerHash', new_q).decode('utf-8')
-        users_db.add_answer_to_user(event.user_id, new_q, new_answer)
+        new_q = redis_db.srandmember(redis_set_name, 1)[0].decode('utf-8')
+        new_answer = redis_db.hget(redis_hash_name, new_q).decode('utf-8')
+        users_db.add_answer_to_user(event.user_id, user_info, new_q, new_answer)
         type_of_answer = new_question_new_user(event, vk_api, new_q=new_q, msg=msg)
         logger.debug(f'"{type_of_answer}" message were sent')
         return
     else:
         # user got question and he is trying answer
         if got_question:
-            correct_answer = users_db.get_user_correct_answer(event.user_id)
+            correct_answer = users_db.get_user_correct_answer(event.user_id, user_info)
             type_of_answer = check_answer(event, vk_api, correct_answer=correct_answer)
             logger.debug(f'"{type_of_answer}" message were sent')
             return
@@ -311,11 +340,21 @@ if __name__ == "__main__":
     redis_db_address = os.getenv('REDIS_DB_ADDRESS')
     redis_db_port = os.getenv('REDIS_DB_PORT')
     redis_db_password = os.getenv('REDIS_DB_PASSWORD')
+    redis_set_of_questions_name = os.getenv('REDIS_SET_OF_QUESTIONS_NAME')
+    redis_hash_of_questions_and_answers_name = os.getenv('REDIS_HASH_OF_QUESTIONS_AND_ANSWERS_NAME')
+    redis_hash_users_info_name = os.getenv('REDIS_HASH_USERS_INFO_NAME')
     logger.debug('.env were read')
+
+    if redis_set_of_questions_name is None:
+        redis_set_of_questions_name = 'QuestionAnswerSet'
+    if redis_hash_of_questions_and_answers_name is None:
+        redis_hash_of_questions_and_answers_name = 'QuestionAnswerHash'
+    if redis_hash_users_info_name is None:
+        redis_hash_users_info_name = 'UsersHash'
 
     redis_db = redis.Redis(host=redis_db_address, port=redis_db_port, password=redis_db_password)
     logger.debug('Got DB connection')
-    users_db = VkSessionUsersCondition()
+    users_db = VkSessionUsersCondition(redis_db, redis_hash_users_info_name)
 
     while True:
         try:
@@ -325,6 +364,7 @@ if __name__ == "__main__":
             longpoll = VkLongPoll(vk_session)
             for event in longpoll.listen():
                 if event.type == VkEventType.MESSAGE_NEW and event.to_me:
-                    run_bot_logic(event, vk_api, redis_db, users_db)
+                    run_bot_logic(event, vk_api, redis_db, users_db, redis_set_of_questions_name,
+                                  redis_hash_of_questions_and_answers_name)
         except Exception:
             logger.exception('Critical error in ')
