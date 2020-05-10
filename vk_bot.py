@@ -91,117 +91,6 @@ class VkSessionUsersCondition:
         self.logger.debug(f'User got answer, user_id={user_id}')
 
 
-def run_bot_logic(event, vk_api, redis_db, users_db):
-    """Logic of bot.
-
-    :param event: event which discribe message
-    :param vk_api: authorized session in vk
-    :param redis_db: redis DB with questions
-    :param users_db: custom DB of users condition
-    """
-    first_time = False
-    got_question = True
-    msg = ''
-    if event.type == VkEventType.MESSAGE_NEW and event.to_me:
-        logger.debug(f'Starting work. user_id={event.user_id}')
-        # in start we will get future question and answer if didn't get early
-        if not users_db.is_user_in_db(event.user_id):
-            users_db.add_or_update_user(event.user_id)
-            first_time = True
-            msg += 'Рады приветствовать вас в нашей викторине!\n'
-            logger.debug('User play first time.')
-
-        if not users_db.is_user_got_question(event.user_id):
-            got_question = False
-            logger.debug('User didn\'t get question.')
-
-        if event.text == "Сдаться":
-            logger.debug('User gave up')
-            answer = users_db.get_user_correct_answer(event.user_id)
-
-            if answer is None:
-                msg += 'Еще не получили вопрос, а уже сдаетесь? Попробуйте сыграть в викторину.\n'
-                msg += 'Нажмите на кнопку "Новый вопрос".'
-                vk_api.messages.send(
-                    user_id=event.user_id,
-                    message=msg,
-                    random_id=random.randint(1, 1000),
-                    keyboard=init_keyboard().get_keyboard()
-                )
-                logger.debug('"give up without question" message were sent')
-                return
-
-            msg = f'Жаль, правильный ответ:\n{answer}'
-            vk_api.messages.send(
-                user_id=event.user_id,
-                message=msg,
-                random_id=random.randint(1, 1000),
-                keyboard=init_keyboard().get_keyboard()
-            )
-            logger.debug('"give up" message were sent')
-        elif event.text == "Новый вопрос":
-            logger.debug('User is getting new question')
-            if got_question and not first_time:
-                answer = users_db.get_user_correct_answer(event.user_id)
-                msg += f'А как же предыдущий вопрос?\nПравильный ответ:\n{answer}'
-                vk_api.messages.send(
-                    user_id=event.user_id,
-                    message=msg,
-                    random_id=random.randint(1, 1000),
-                    keyboard=init_keyboard().get_keyboard()
-                )
-                logger.debug('"answer to question with new question request" message were sent')
-                q = redis_db.srandmember('QuestionAnswerSet', 1)[0].decode('utf-8')
-                answer = redis_db.hget('QuestionAnswerHash', q).decode('utf-8')
-                users_db.add_answer_to_user(event.user_id, q, answer)
-                msg = f'Ваш новый вопрос:\n{q}'
-                vk_api.messages.send(
-                    user_id=event.user_id,
-                    message=msg,
-                    random_id=random.randint(1, 1000),
-                    keyboard=init_keyboard().get_keyboard()
-                )
-                logger.debug('"new question with new question request" message were sent')
-                return
-
-            q = redis_db.srandmember('QuestionAnswerSet', 1)[0].decode('utf-8')
-            answer = redis_db.hget('QuestionAnswerHash', q).decode('utf-8')
-            users_db.add_answer_to_user(event.user_id, q, answer)
-            msg += q
-            vk_api.messages.send(
-                user_id=event.user_id,
-                message=msg,
-                random_id=random.randint(1, 1000),
-                keyboard=init_keyboard().get_keyboard()
-            )
-            logger.debug('"new question" message were sent')
-        else:
-            if got_question:
-                correct_answer = users_db.get_user_correct_answer(event.user_id)
-                if is_correct_answer(event.text, correct_answer, limit=0.5):
-                    msg = f'Правильно! Полный ответ:\n{correct_answer}\nХотите новый вопрос? Выберите в меню.'
-                    logger.debug('"correct answer" message sent')
-                else:
-                    msg = f'К сожалению нет! Полный ответ:\n{correct_answer}\nХотите новый вопрос? Выберите в меню.'
-                    logger.debug('"incorrect answer" message were sent')
-                vk_api.messages.send(
-                    user_id=event.user_id,
-                    message=msg,
-                    random_id=random.randint(1, 1000),
-                    keyboard=init_keyboard().get_keyboard()
-                )
-                return
-
-            msg += 'Нажмите на кнопку "Новый вопрос" для получения вопроса.'
-            vk_api.messages.send(
-                user_id=event.user_id,
-                message=msg,
-                random_id=random.randint(1, 1000),
-                keyboard=init_keyboard().get_keyboard()
-            )
-            logger.debug('"press new question" message were sent')
-
-
 def init_keyboard():
     """Initialize keyboard.
 
@@ -217,6 +106,201 @@ def init_keyboard():
 
     logger.debug('Keyboard initialized')
     return keyboard
+
+
+def give_up(event, vk_api, **kwargs):
+    """Button give up logic.
+
+    :param event: event which discribe message
+    :param vk_api: authorized session in vk
+    :param kwargs: dict, named args
+    :return: str, type of answer
+    """
+    answer = kwargs['answer']
+    msg = kwargs['msg']
+
+    if answer is None:
+        msg += 'Еще не получили вопрос, а уже сдаетесь? Попробуйте сыграть в викторину.\n'
+        msg += 'Нажмите на кнопку "Новый вопрос".'
+        vk_api.messages.send(
+            user_id=event.user_id,
+            message=msg,
+            random_id=random.randint(1, 1000),
+            keyboard=init_keyboard().get_keyboard()
+        )
+        return 'give up without question'
+
+    msg = f'Жаль, правильный ответ:\n{answer}'
+    vk_api.messages.send(
+        user_id=event.user_id,
+        message=msg,
+        random_id=random.randint(1, 1000),
+        keyboard=init_keyboard().get_keyboard()
+    )
+    return 'give up'
+
+
+def new_question_old_user(event, vk_api, **kwargs):
+    """Button new question logic in situation where user got questions early.
+
+    :param event: event which discribe message
+    :param vk_api: authorized session in vk
+    :param kwargs: dict, named args
+    :return: str, type of answer
+    """
+    msg = kwargs['msg']
+    answer = kwargs['answer']
+    new_q = kwargs['q']
+
+    msg += f'А как же предыдущий вопрос?\nПравильный ответ:\n{answer}'
+    vk_api.messages.send(
+        user_id=event.user_id,
+        message=msg,
+        random_id=random.randint(1, 1000),
+        keyboard=init_keyboard().get_keyboard()
+    )
+    msg = f'Ваш новый вопрос:\n{new_q}'
+    vk_api.messages.send(
+        user_id=event.user_id,
+        message=msg,
+        random_id=random.randint(1, 1000),
+        keyboard=init_keyboard().get_keyboard()
+    )
+    return "new question for old user without answer previous"
+
+
+def new_question_new_user(event, vk_api, **kwargs):
+    """Button new question logic for new user.
+
+    :param event: event which discribe message
+    :param vk_api: authorized session in vk
+    :param kwargs: dict, named args
+    :return: str, type of answer
+    """
+    msg = kwargs['msg']
+    new_q = kwargs['q']
+
+    msg += new_q
+    vk_api.messages.send(
+        user_id=event.user_id,
+        message=msg,
+        random_id=random.randint(1, 1000),
+        keyboard=init_keyboard().get_keyboard()
+    )
+    return 'new question for new user'
+
+
+def check_answer(event, vk_api, **kwargs):
+    """Logic of checking answers.
+
+    :param event: event which discribe message
+    :param vk_api: authorized session in vk
+    :param kwargs: dict, named args
+    :return: str, type of answer
+    """
+    correct_answer = kwargs['correct_answer']
+
+    if is_correct_answer(event.text, correct_answer, limit=0.5):
+        msg = f'Правильно! Полный ответ:\n{correct_answer}\nХотите новый вопрос? Выберите в меню.'
+        type_of_answer = 'correct answer'
+    else:
+        msg = f'К сожалению нет! Полный ответ:\n{correct_answer}\nХотите новый вопрос? Выберите в меню.'
+        type_of_answer = 'incorrect answer'
+
+    vk_api.messages.send(
+        user_id=event.user_id,
+        message=msg,
+        random_id=random.randint(1, 1000),
+        keyboard=init_keyboard().get_keyboard()
+    )
+    return type_of_answer
+
+
+def send_new_question_msg(event, vk_api, **kwargs):
+    """Send recommendation to press button 'new question'.
+
+    :param event: event which discribe message
+    :param vk_api: authorized session in vk
+    :param kwargs: dict, named args
+    :return: str, type of answer
+    """
+    msg = kwargs['msg']
+
+    msg += 'Нажмите на кнопку "Новый вопрос" для получения вопроса.'
+    vk_api.messages.send(
+        user_id=event.user_id,
+        message=msg,
+        random_id=random.randint(1, 1000),
+        keyboard=init_keyboard().get_keyboard()
+    )
+    return 'press new question'
+
+
+def run_bot_logic(event, vk_api, redis_db, users_db):
+    """Logic of bot.
+
+    :param event: event which discribe message
+    :param vk_api: authorized session in vk
+    :param redis_db: redis DB with questions
+    :param users_db: custom DB of users condition
+    """
+    first_time = False
+    got_question = True
+    msg = ''
+
+    if not (event.type == VkEventType.MESSAGE_NEW and event.to_me):
+        return
+
+    logger.debug(f'Starting work. user_id={event.user_id}')
+    # in start we will get future question and answer if didn't get early
+    if not users_db.is_user_in_db(event.user_id):
+        users_db.add_or_update_user(event.user_id)
+        first_time = True
+        msg += 'Рады приветствовать вас в нашей викторине!\n'
+        logger.debug('User play first time.')
+
+    if not users_db.is_user_got_question(event.user_id):
+        got_question = False
+        logger.debug('User didn\'t get question.')
+
+    if event.text == "Сдаться":
+        logger.debug('User gave up')
+        answer = users_db.get_user_correct_answer(event.user_id)
+        type_of_answer = give_up(event, vk_api, answer=answer, msg=msg)
+        logger.debug(f'"{type_of_answer}" message were sent')
+        return
+    elif event.text == "Новый вопрос":
+        logger.debug('User is getting new question')
+
+        # user isn't playing first time. But he pressed "new question" instead answer to question
+        if got_question and not first_time:
+            answer = users_db.get_user_correct_answer(event.user_id)
+            new_q = redis_db.srandmember('QuestionAnswerSet', 1)[0].decode('utf-8')
+            new_answer = redis_db.hget('QuestionAnswerHash', new_q).decode('utf-8')
+            users_db.add_answer_to_user(event.user_id, new_q, new_answer)
+            type_of_answer = new_question_old_user(event, vk_api, answer=answer, new_q=new_q, msg=msg)
+            logger.debug(f'"{type_of_answer}" message were sent')
+            return
+
+        # user is playing first time
+        new_q = redis_db.srandmember('QuestionAnswerSet', 1)[0].decode('utf-8')
+        new_answer = redis_db.hget('QuestionAnswerHash', new_q).decode('utf-8')
+        users_db.add_answer_to_user(event.user_id, new_q, new_answer)
+        type_of_answer = new_question_new_user(event, vk_api, new_q=new_q, msg=msg)
+        logger.debug(f'"{type_of_answer}" message were sent')
+        return
+    else:
+        # user got question and he is trying answer
+        if got_question:
+            correct_answer = users_db.get_user_correct_answer(event.user_id)
+            type_of_answer = check_answer(event, vk_api, correct_answer=correct_answer)
+            logger.debug(f'"{type_of_answer}" message were sent')
+            return
+
+        # user didn't get question and bot must get recommendation to press 'new question' button
+        type_of_answer = send_new_question_msg(event, vk_api, msg=msg)
+        logger.debug(f'"{type_of_answer}" message were sent')
+        return
 
 
 if __name__ == "__main__":
