@@ -74,16 +74,16 @@ Open command line (in windows `Win+R` and write `cmd` and `Ok`). Go to directory
 
 ```
 // filling your DB (file "question.json" must be in "data" subdirectory).
-python <PATH TO PROGRAM>\redis_base_init.py 
+python redis_base_init.py 
 ```
 
 ```
 // if you want to start telegram bot.
-python <PATH TO PROGRAM>\tg_bot.py 
+python tg_bot.py 
 ```
 ```
 // if you want to start vk bot.
-python <PATH TO PROGRAM>\vk_bot.py
+python vk_bot.py
 ```
 
 ##### Deploy on heroku
