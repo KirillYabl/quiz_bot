@@ -1,32 +1,32 @@
 # Quiz bots (VK and telegram) with Redis DB.
 
-This project contain code for create your bots in VK and Telegram.
+This project contains code for creation your bots in VK and Telegram.
 
-Both, VK in Telegram bots are integrated with Redis DB.
+Both, VK and Telegram bots are integrated with Redis DB.
 
 ### How to install
 
 ##### Local
 
-You need to create `.env` file and write in file parameters:
+You need to create `.env` file and write next parameters in file:
 
-`TG_BOT_TOKEN` - secret token for your telegram bot. Just use [this](https://core.telegram.org/bots#creating-a-new-bot) instruction (use VPN to open this link in Russia).
+`TG_BOT_TOKEN` - secret telegram bot token. Use [this](https://core.telegram.org/bots#creating-a-new-bot) instruction (use VPN to open this link in Russia).
 
-After you got `TG_BOT_TOKEN` you need to write to you bot in telegram any message (`/start` for example).
+After you got `TG_BOT_TOKEN` you need to write to you telegram bot any message (`/start` for example).
     
-`VK_APP_TOKEN` - secret token of you VK app. You can create this in group administration panel in `Work with API`.
+`VK_APP_TOKEN` - secret VK app token. You can create it in group's administration panel (section `Work with API`).
 
 `PROXY` - proxy IP with port and https if you need. Work with empty proxy if you in Europe.
 
-`REDIS_DB_ADDRESS` - register your account in [redis](https://redislabs.com/) and get address of your base (for example `redis-13965.f18.us-east-4-9.wc1.cloud.redislabs.com`).
+`REDIS_DB_ADDRESS` - register your [redis](https://redislabs.com/) account and get address of your base (for example `redis-13965.f18.us-east-4-9.wc1.cloud.redislabs.com`).
 
 `REDIS_DB_PORT` - usually port writes in db address in the end `redis-13965.f18.us-east-4-9.wc1.cloud.redislabs.com:16635`
 
 `REDIS_DB_PASSWORD` - redis also will generate your DB password when your will init DB.
 
-`DB_PATH` - path to file with questions and answer (default: `data\question.json`).
+`DB_PATH` - path to file with questions and answers (default: `data\question.json`).
 
-`DB_RECORD_COUNT` - count of question which will write to db (default: 100).
+`DB_RECORD_COUNT` - count of questions which will write into DB (default: 100).
 
 `REDIS_SET_OF_QUESTIONS_NAME` - name of redis set of questions. (default: QuestionAnswerSet)
 
@@ -42,7 +42,7 @@ pip install -r requirements.txt
 
 ##### Deploy on heroku
 
-For deploy this bot on [heroku](https://heroku.com) you need to do next:
+For deploying this bot on [heroku](https://heroku.com) you need to do next:
 
 1) Sign up in heroku
 2) Create app
@@ -52,9 +52,7 @@ For deploy this bot on [heroku](https://heroku.com) you need to do next:
 
 ##### Run in Local
 
-Open command line (in windows `Win+R` and write `cmd` and `Ok`). Go to directory with program or just write in cmd:
-
-Create your own `DB_PATH` file with training questions and answers for dialogflow.
+Create your own `DB_PATH` file with training questions and answers.
 
 Example of file:
 
@@ -71,6 +69,8 @@ Example of file:
 ```
 
 In file `redis_base_init.py` given a simple example of DB filling
+
+Open command line (in windows `Win+R` and write `cmd` and `Ok`). Go to directory with program or write in cmd:
 
 ```
 // filling your DB (file "question.json" must be in "data" subdirectory).
