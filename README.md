@@ -58,13 +58,9 @@ Example of file:
 
 ```json
 {
-"data": {
-    "1": {"q": "question", "a": "answer"},
-    ...,
-    "100": {"q": "question", "a": "answer"}
-    },
-"min_id": 1,
-"max_id": 100
+"1": {"q": "question", "a": "answer"},
+...,
+"100": {"q": "question", "a": "answer"}
 }
 ```
 
