@@ -132,7 +132,7 @@ def init_keyboard():
     keyboard.add_line()  # Переход на вторую строку
     keyboard.add_button('Мой счёт', color=VkKeyboardColor.PRIMARY)
 
-    logger.debug('Keyboard initialized')
+    logger.debug('Keyboard was initialized')
     return keyboard
 
 
@@ -296,7 +296,7 @@ def run_bot_logic(event, vk_api, redis_db, users_db, redis_set_name, redis_hash_
         logger.debug('User gave up')
         answer = users_db.get_user_correct_answer(event.user_id, user_info)
         type_of_answer = give_up(event, vk_api, answer=answer, msg=msg)
-        logger.debug(f'"{type_of_answer}" message were sent')
+        logger.debug(f'"{type_of_answer}" message was sent')
         return
     elif event.text == "Новый вопрос":
         logger.debug('User is getting new question')
@@ -308,7 +308,7 @@ def run_bot_logic(event, vk_api, redis_db, users_db, redis_set_name, redis_hash_
             new_answer = redis_db.hget(redis_hash_name, new_q).decode('utf-8')
             users_db.add_answer_to_user(event.user_id, user_info, new_q, new_answer)
             type_of_answer = new_question_old_user(event, vk_api, answer=answer, new_q=new_q, msg=msg)
-            logger.debug(f'"{type_of_answer}" message were sent')
+            logger.debug(f'"{type_of_answer}" message was sent')
             return
 
         # user is playing first time
@@ -316,19 +316,19 @@ def run_bot_logic(event, vk_api, redis_db, users_db, redis_set_name, redis_hash_
         new_answer = redis_db.hget(redis_hash_name, new_q).decode('utf-8')
         users_db.add_answer_to_user(event.user_id, user_info, new_q, new_answer)
         type_of_answer = new_question_new_user(event, vk_api, new_q=new_q, msg=msg)
-        logger.debug(f'"{type_of_answer}" message were sent')
+        logger.debug(f'"{type_of_answer}" message was sent')
         return
     else:
         # user got question and he is trying answer
         if got_question:
             correct_answer = users_db.get_user_correct_answer(event.user_id, user_info)
             type_of_answer = check_answer(event, vk_api, correct_answer=correct_answer)
-            logger.debug(f'"{type_of_answer}" message were sent')
+            logger.debug(f'"{type_of_answer}" message was sent')
             return
 
         # user didn't get question and bot must get recommendation to press 'new question' button
         type_of_answer = send_new_question_msg(event, vk_api, msg=msg)
-        logger.debug(f'"{type_of_answer}" message were sent')
+        logger.debug(f'"{type_of_answer}" message was sent')
         return
 
 
@@ -340,17 +340,11 @@ if __name__ == "__main__":
     redis_db_address = os.getenv('REDIS_DB_ADDRESS')
     redis_db_port = os.getenv('REDIS_DB_PORT')
     redis_db_password = os.getenv('REDIS_DB_PASSWORD')
-    redis_set_of_questions_name = os.getenv('REDIS_SET_OF_QUESTIONS_NAME')
-    redis_hash_of_questions_and_answers_name = os.getenv('REDIS_HASH_OF_QUESTIONS_AND_ANSWERS_NAME')
-    redis_hash_users_info_name = os.getenv('REDIS_HASH_USERS_INFO_NAME')
-    logger.debug('.env were read')
-
-    if redis_set_of_questions_name is None:
-        redis_set_of_questions_name = 'QuestionAnswerSet'
-    if redis_hash_of_questions_and_answers_name is None:
-        redis_hash_of_questions_and_answers_name = 'QuestionAnswerHash'
-    if redis_hash_users_info_name is None:
-        redis_hash_users_info_name = 'UsersHash'
+    redis_set_of_questions_name = os.getenv('REDIS_SET_OF_QUESTIONS_NAME', default='QuestionAnswerSet')
+    redis_hash_of_questions_and_answers_name = os.getenv('REDIS_HASH_OF_QUESTIONS_AND_ANSWERS_NAME',
+                                                         default='QuestionAnswerHash')
+    redis_hash_users_info_name = os.getenv('REDIS_HASH_USERS_INFO_NAME', default='UsersHash')
+    logger.debug('.env was read')
 
     redis_db = redis.Redis(host=redis_db_address, port=redis_db_port, password=redis_db_password)
     logger.debug('Got DB connection')

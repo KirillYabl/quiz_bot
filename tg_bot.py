@@ -34,7 +34,7 @@ def greet_user(bot, update):
     reply_markup = ReplyKeyboardMarkup(custom_keyboard)
     msg = 'Добро пожаловать в историческую викторину. Выберите действие!'
     bot.send_message(chat_id=update.message.chat_id, text=msg, reply_markup=reply_markup)
-    logger.debug('"Greeting" message were sent')
+    logger.debug('"Greeting" message was sent')
 
     return Buttons.MENU
 
@@ -69,11 +69,11 @@ def give_question(bot, update, user_data, redis_db, redis_set_name, redis_hash_n
     """
     question = redis_db.srandmember(redis_set_name, 1)[0].decode('utf-8')
     bot.send_message(chat_id=update.message.chat_id, text=question)
-    logger.debug('Question were sent')
+    logger.debug('Question was sent')
 
     answer = redis_db.hget(redis_hash_name, question).decode('utf-8')
     user_data['answer'] = answer
-    logger.debug('Answer were wrote')
+    logger.debug('Answer was wrote')
 
     return Buttons.ANSWER
 
@@ -94,18 +94,18 @@ def check_answer(bot, update, user_data):
     if is_correct_answer(user_answer, answer, limit=0.5, answer_handler=normalize_answer):
         msg = 'Правильно! Полный ответ:\n{}\nХотите новый вопрос? Выберите в меню.'.format(user_data['answer'])
         bot.send_message(chat_id=update.message.chat_id, text=msg)
-        logger.debug('"Correct answer" message were sent')
+        logger.debug('"Correct answer" message was sent')
         return Buttons.QUESTION
 
     if update.message.text == 'Сдаться':
         msg = 'Жаль... Правильный ответ:\n{}\nХотите новый вопрос? Выберите в меню.'.format(user_data['answer'])
         bot.send_message(chat_id=update.message.chat_id, text=msg)
-        logger.debug('"Gave up" message were sent')
+        logger.debug('"Gave up" message was sent')
         return Buttons.QUESTION
 
     msg = 'К сожалению нет! Правильный ответ:\n{}\nХотите новый вопрос? Выберите в меню.'.format(user_data['answer'])
     bot.send_message(chat_id=update.message.chat_id, text=msg)
-    logger.debug('"Mistake" message were sent')
+    logger.debug('"Mistake" message was sent')
     return Buttons.QUESTION
 
 
@@ -117,7 +117,7 @@ def stop_quiz(bot, update):
     :return: number of next action for conversation handler
     """
     bot.send_message(chat_id=update.message.chat_id, text='Викторина остановлена.')
-    logger.debug('"Stop" message were sent')
+    logger.debug('"Stop" message was sent')
 
     return Buttons.MENU
 
@@ -131,14 +131,10 @@ if __name__ == '__main__':
     redis_db_address = os.getenv('REDIS_DB_ADDRESS')
     redis_db_port = os.getenv('REDIS_DB_PORT')
     redis_db_password = os.getenv('REDIS_DB_PASSWORD')
-    redis_set_of_questions_name = os.getenv('REDIS_SET_OF_QUESTIONS_NAME')
-    redis_hash_of_questions_and_answers_name = os.getenv('REDIS_HASH_OF_QUESTIONS_AND_ANSWERS_NAME')
-    logger.debug('.env were read')
-
-    if redis_set_of_questions_name is None:
-        redis_set_of_questions_name = 'QuestionAnswerSet'
-    if redis_hash_of_questions_and_answers_name is None:
-        redis_hash_of_questions_and_answers_name = 'QuestionAnswerHash'
+    redis_set_of_questions_name = os.getenv('REDIS_SET_OF_QUESTIONS_NAME', default='QuestionAnswerSet')
+    redis_hash_of_questions_and_answers_name = os.getenv('REDIS_HASH_OF_QUESTIONS_AND_ANSWERS_NAME',
+                                                         default='QuestionAnswerHash')
+    logger.debug('.env was read')
 
     redis_db = redis.Redis(host=redis_db_address, port=redis_db_port, password=redis_db_password)
     logger.debug('Got DB connection')
@@ -154,18 +150,18 @@ if __name__ == '__main__':
         },
         fallbacks=[CommandHandler('stop', stop_quiz)]
     )
-    logger.debug('Conversation handler were initialized')
+    logger.debug('Conversation handler was initialized')
 
     request_kwargs = None
     if proxy is not None:
         request_kwargs = {'proxy_url': proxy}
         logger.debug(f'Using proxy - {proxy}')
     updater = Updater(token=tg_bot_token, request_kwargs=request_kwargs)
-    logger.debug('Connection with TG were established')
+    logger.debug('Connection with TG was established')
 
     # add handlers
     updater.dispatcher.add_handler(conv_handler)
-    logger.debug('Conversation handler were added to updater')
+    logger.debug('Conversation handler was added to updater')
 
     while True:
         try:

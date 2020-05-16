@@ -29,8 +29,8 @@ def is_correct_answer(user_answer, correct_answer, limit, answer_handler=None):
         prepared_user_answer = answer_handler(user_answer)
 
     # sets of words
-    words_of_correct_answer = set(prepared_correct_answer.split(' '))
-    words_of_user_answer = set(prepared_user_answer.split(' '))
+    words_of_correct_answer = set(prepared_correct_answer.split())
+    words_of_user_answer = set(prepared_user_answer.split())
 
     # correct words - intersection of sets
     correct_words = words_of_correct_answer.intersection(words_of_user_answer)
