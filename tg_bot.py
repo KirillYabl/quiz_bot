@@ -8,7 +8,7 @@ import os
 from enum import IntEnum, unique
 from functools import partial
 
-from common_functions import is_correct_answer
+from common_functions import is_correct_answer, normalize_answer
 
 logger = logging.getLogger(__name__)
 
@@ -91,7 +91,7 @@ def check_answer(bot, update, user_data):
     user_answer = update.message.text
 
     # half correct words is OK
-    if is_correct_answer(user_answer, answer, limit=0.5):
+    if is_correct_answer(user_answer, answer, limit=0.5, answer_handler=normalize_answer):
         msg = 'Правильно! Полный ответ:\n{}\nХотите новый вопрос? Выберите в меню.'.format(user_data['answer'])
         bot.send_message(chat_id=update.message.chat_id, text=msg)
         logger.debug('"Correct answer" message were sent')

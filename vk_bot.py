@@ -9,7 +9,7 @@ from vk_api.longpoll import VkLongPoll, VkEventType
 from vk_api.keyboard import VkKeyboard, VkKeyboardColor
 import redis
 
-from common_functions import is_correct_answer
+from common_functions import is_correct_answer, normalize_answer
 
 logger = logging.getLogger(__name__)
 
@@ -228,7 +228,7 @@ def check_answer(event, vk_api, **kwargs):
     """
     correct_answer = kwargs['correct_answer']
 
-    if is_correct_answer(event.text, correct_answer, limit=0.5):
+    if is_correct_answer(event.text, correct_answer, limit=0.5, answer_handler=normalize_answer):
         msg = f'Правильно! Полный ответ:\n{correct_answer}\nХотите новый вопрос? Выберите в меню.'
         type_of_answer = 'correct answer'
     else:

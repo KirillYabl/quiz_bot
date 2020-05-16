@@ -1,26 +1,32 @@
-def is_correct_answer(user_answer, correct_answer, limit):
+def normalize_answer(answer):
+    """Do manipulations with answer for checking.
+
+    :param answer: str, text of answer
+    :return: str, modified answer
+    """
+    first_sentence_of_answer = answer.split('.')[0]
+    answer_without_explanation = first_sentence_of_answer.split('(')[0]
+
+    return answer_without_explanation.lower()
+
+
+def is_correct_answer(user_answer, correct_answer, limit, answer_handler=None):
     """Check if answer correct (more than :limit: of words is ok).
 
     :param user_answer: text of user answer
     :param correct_answer: text of correct answer
     :param limit: number between 0 and 1, this is percentage of correct answers
+    :param answer_handler: functions, this functions should do manipulations with answers to normalize them.
+    If you don't need to normalize answer, you will set this param 'None'
     :return: bool, correct or no
     """
 
-    def normalize_answer(answer):
-        """Do manipulations with answer for checking.
-
-        :param answer: str, text of answer
-        :return: str, modified answer
-        """
-        first_sentence_of_answer = answer.split('.')[0]
-        answer_without_explanation = first_sentence_of_answer.split('(')[0]
-
-        return answer_without_explanation.lower()
-
     # prepare answers
-    prepared_correct_answer = normalize_answer(correct_answer)
-    prepared_user_answer = normalize_answer(user_answer)
+    prepared_correct_answer = correct_answer
+    prepared_user_answer = user_answer
+    if answer_handler is not None:
+        prepared_correct_answer = answer_handler(correct_answer)
+        prepared_user_answer = answer_handler(user_answer)
 
     # sets of words
     words_of_correct_answer = set(prepared_correct_answer.split(' '))
