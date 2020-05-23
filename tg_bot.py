@@ -163,8 +163,8 @@ if __name__ == '__main__':
     updater.dispatcher.add_handler(conv_handler)
     logger.debug('Conversation handler was added to updater')
 
-    while True:
-        try:
-            updater.start_polling()
-        except Exception:
-            logger.exception('Critical error in ')
+    # If your error handling consists in writing errors to the log,
+    # then you don't need to write a some error handler,
+    # telegram updater logger will write them instead you
+    # and the application will start working again
+    updater.start_polling()
