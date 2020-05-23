@@ -18,13 +18,13 @@ After you got `TG_BOT_TOKEN` you need to write to you telegram bot any message (
 
 `PROXY` - proxy IP with port and https if you need. Work with empty proxy if you in Europe.
 
-`REDIS_DB_ADDRESS` - register your [redis](https://redislabs.com/) account and get address of your base (for example `redis-13965.f18.us-east-4-9.wc1.cloud.redislabs.com`).
+`REDIS_DB_ADDRESS` - register your [redis](https://redislabs.com/) account and get address of your database (for example `redis-13965.f18.us-east-4-9.wc1.cloud.redislabs.com`).
 
 `REDIS_DB_PORT` - usually port writes in db address in the end `redis-13965.f18.us-east-4-9.wc1.cloud.redislabs.com:16635`
 
 `REDIS_DB_PASSWORD` - redis also will generate your DB password when your will init DB.
 
-`DB_PATH` - path to file with questions and answers (default: `data\question.json`).
+`QUESTIONS_DB_PATH` - path to file with questions and answers (default: `data\question.json`).
 
 `DB_RECORD_COUNT` - count of questions which will write into DB (default: 100).
 

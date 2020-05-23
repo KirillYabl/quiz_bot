@@ -153,7 +153,7 @@ if __name__ == '__main__':
     logger.debug('Conversation handler was initialized')
 
     request_kwargs = None
-    if proxy is not None:
+    if proxy:
         request_kwargs = {'proxy_url': proxy}
         logger.debug(f'Using proxy - {proxy}')
     updater = Updater(token=tg_bot_token, request_kwargs=request_kwargs)

@@ -4,7 +4,6 @@ import redis
 import logging
 import os
 import json
-import random
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +14,7 @@ if __name__ == '__main__':
     redis_db_address = os.getenv('REDIS_DB_ADDRESS')
     redis_db_port = os.getenv('REDIS_DB_PORT')
     redis_db_password = os.getenv('REDIS_DB_PASSWORD')
-    db_path = os.getenv('DB_PATH', default='data/questions.json')
+    questions_db_path = os.getenv('QUESTIONS_DB_PATH', default='data/questions.json')
     db_record_count = os.getenv('DB_RECORD_COUNT', default=100)
     redis_set_of_questions_name = os.getenv('REDIS_SET_OF_QUESTIONS_NAME', default='QuestionAnswerSet')
     redis_hash_of_questions_and_answers_name = os.getenv('REDIS_HASH_OF_QUESTIONS_AND_ANSWERS_NAME',
